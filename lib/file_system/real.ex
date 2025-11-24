@@ -23,4 +23,10 @@ defmodule FrameCore.FileSystem.Real do
         error
     end
   end
+
+  @impl true
+  def rm(path), do: File.rm(path)
+
+  @impl true
+  def mkdir_p(path), do: File.mkdir_p(path)
 end

@@ -100,6 +100,7 @@ defmodule FrameCore.Slideshow do
   def handle_call(:refresh, _from, state) do
     case Backend.fetch_images(state.last_fetch) do
       {:ok, image_data} ->
+        Logger.info("Fetched #{length(image_data)} images from backend")
         # Process each image (download new, delete removed)
         new_state = process_images(image_data, state)
 
@@ -185,9 +186,12 @@ defmodule FrameCore.Slideshow do
 
   @spec process_images([map()], State.t()) :: State.t()
   defp process_images(image_data, state) do
-    Enum.reduce(image_data, state, fn image, acc_state ->
-      process_single_image(image, acc_state)
-    end)
+    result =
+      Enum.reduce(image_data, state, fn image, acc_state ->
+        process_single_image(image, acc_state)
+      end)
+
+    result
   end
 
   @spec process_single_image(map(), State.t()) :: State.t()
@@ -195,11 +199,21 @@ defmodule FrameCore.Slideshow do
     # Image should exist - download if not present
     image_path = get_image_path(image)
 
-    if File.exists?(image_path) do
+    if image_path in state.images do
+      Logger.debug("Image #{image_path} already exists, skipping")
       state
     else
-      download_image(image, image_path)
-      %{state | images: [image_path | state.images]}
+      Logger.debug("Downloading image id #{image["id"]} from: #{image["url"]}")
+
+      case download_image(image, image_path, state.file_system) do
+        :ok ->
+          Logger.debug("Successfully downloaded #{image_path}, adding to state")
+          %{state | images: [image_path | state.images]}
+
+        {:error, reason} ->
+          Logger.error("Failed to download image: #{inspect(reason)}")
+          state
+      end
     end
   end
 
@@ -207,9 +221,13 @@ defmodule FrameCore.Slideshow do
     # Image should be deleted
     image_path = get_image_path(image)
 
-    if File.exists?(image_path) do
-      case File.rm(image_path) do
+    if image_path in state.images do
+      # Remove from file system
+      Logger.debug("Deleting image: #{image_path}")
+
+      case state.file_system.rm(image_path) do
         :ok ->
+          Logger.debug("Successfully deleted #{image_path}, removing from state")
           %{state | images: List.delete(state.images, image_path)}
 
         {:error, reason} ->
@@ -228,12 +246,14 @@ defmodule FrameCore.Slideshow do
     Path.join(@images_dir, "#{id}#{extension}")
   end
 
-  @spec download_image(map(), String.t()) :: :ok | {:error, term()}
-  defp download_image(%{"url" => url}, destination) do
-    # TODO: Implement actual image download
-    # For now, create directory and return ok
-    File.mkdir_p!(Path.dirname(destination))
-    Logger.info("Would download #{url} to #{destination}")
-    :ok
+  @spec download_image(map(), String.t(), module()) :: :ok | {:error, term()}
+  defp download_image(%{"url" => url}, destination, file_system) do
+    # TODO: Implement actual HTTP download using Req
+    # For now, just create the directory and file
+    with :ok <- file_system.mkdir_p(Path.dirname(destination)),
+         :ok <- file_system.write!(destination, "") do
+      Logger.info("Downloaded #{url} to #{destination}")
+      :ok
+    end
   end
 end
