@@ -21,7 +21,6 @@ defmodule FrameCore.DeviceIdTest do
       end)
 
       config = %DeviceId.Config{
-        path: path,
         file_system: FrameCore.FileSystemMock
       }
 
@@ -40,7 +39,6 @@ defmodule FrameCore.DeviceIdTest do
       end)
 
       config = %DeviceId.Config{
-        path: path,
         file_system: FrameCore.FileSystemMock
       }
 
@@ -63,7 +61,6 @@ defmodule FrameCore.DeviceIdTest do
       end)
 
       config = %DeviceId.Config{
-        path: path,
         file_system: FrameCore.FileSystemMock
       }
 
@@ -84,7 +81,7 @@ defmodule FrameCore.DeviceIdTest do
     end
 
     test "handles file write errors gracefully" do
-      path = "readonly/device_id.txt"
+      path = "device_id.txt"
 
       expect(FrameCore.FileSystemMock, :read, fn ^path ->
         {:error, :enoent}
@@ -95,7 +92,6 @@ defmodule FrameCore.DeviceIdTest do
       end)
 
       config = %DeviceId.Config{
-        path: path,
         file_system: FrameCore.FileSystemMock
       }
 
