@@ -98,7 +98,6 @@ defmodule FrameCore.Backend do
 
   defp build_headers(device_id) do
     [
-      {"Content-Type", "application/json"},
       {"X-Device-ID", device_id}
     ]
   end

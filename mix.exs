@@ -24,6 +24,7 @@ defmodule FrameCore.MixProject do
       {:dotenv, "~> 3.0.0"},
       {:jason, "~> 1.4"},
       {:uuid, "~> 1.1"},
+      {:req, "~> 0.5"},
       {:mox, "~> 1.0", only: :test},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}

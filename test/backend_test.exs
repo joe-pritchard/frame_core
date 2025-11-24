@@ -15,7 +15,6 @@ defmodule FrameCore.BackendTest do
         assert url == "https://api.example.com/images"
         assert params == %{}
         assert {"X-Device-ID", ^device_id} = List.keyfind(headers, "X-Device-ID", 0)
-        assert {"Content-Type", "application/json"} = List.keyfind(headers, "Content-Type", 0)
 
         {:ok, %{"images" => [%{"id" => 1, "url" => "http://example.com/img1.jpg"}]}}
       end)
