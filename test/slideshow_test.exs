@@ -261,6 +261,11 @@ defmodule FrameCore.SlideshowTest do
         {:ok, %{"data" => images_data}}
       end)
 
+      expect(FrameCore.HttpClientMock, :get_file, 2, fn url, _headers ->
+        assert url in ["http://example.com/img2.jpg", "http://example.com/img3.jpg"]
+        {:ok, <<>>}
+      end)
+
       backend_config = %Backend.Config{
         device_id: "test-device-123",
         client: FrameCore.HttpClientMock,
@@ -380,6 +385,11 @@ defmodule FrameCore.SlideshowTest do
 
       expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
         {:ok, %{"data" => images_data}}
+      end)
+
+      expect(FrameCore.HttpClientMock, :get_file, fn url, _headers ->
+        assert url == "http://example.com/img3.jpg"
+        {:ok, <<>>}
       end)
 
       backend_config = %Backend.Config{

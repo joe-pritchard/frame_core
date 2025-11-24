@@ -248,12 +248,16 @@ defmodule FrameCore.Slideshow do
 
   @spec download_image(map(), String.t(), module()) :: :ok | {:error, term()}
   defp download_image(%{"url" => url}, destination, file_system) do
-    # TODO: Implement actual HTTP download using Req
-    # For now, just create the directory and file
-    with :ok <- file_system.mkdir_p(Path.dirname(destination)),
-         :ok <- file_system.write!(destination, "") do
-      Logger.info("Downloaded #{url} to #{destination}")
-      :ok
+    with :ok <- file_system.mkdir_p(Path.dirname(destination)) do
+      case Backend.download_file(url) do
+        {:ok, data} ->
+          file_system.write!(destination, data)
+          Logger.info("Downloaded #{url} to #{destination}")
+          :ok
+
+        {:error, reason} ->
+          {:error, reason}
+      end
     end
   end
 end

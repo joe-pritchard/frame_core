@@ -48,6 +48,11 @@ defmodule FrameCore.Backend do
     GenServer.call(__MODULE__, {:fetch_images, last_fetch})
   end
 
+  @spec download_file(String.t()) :: {:ok, binary()} | {:error, term()}
+  def download_file(url) do
+    GenServer.call(__MODULE__, {:download_file, url})
+  end
+
   ## Server Callbacks
 
   @impl true
@@ -84,6 +89,17 @@ defmodule FrameCore.Backend do
 
       {:error, reason} = error ->
         Logger.error("Failed to fetch images: #{inspect(reason)}")
+        {:reply, error, state}
+    end
+  end
+
+  def handle_call({:download_file, url}, _from, %State{} = state) do
+    case state.client.get_file(url, build_headers(state.device_id)) do
+      {:ok, body} ->
+        {:reply, {:ok, body}, state}
+
+      {:error, reason} = error ->
+        Logger.error("Failed to download file from #{url}: #{inspect(reason)}")
         {:reply, error, state}
     end
   end

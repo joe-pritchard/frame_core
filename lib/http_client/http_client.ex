@@ -10,4 +10,5 @@ defmodule FrameCore.HttpClient do
   @type error :: {:error, term()}
 
   @callback get_json(url(), params(), headers()) :: {:ok, json_response()} | error()
+  @callback get_file(url(), headers()) :: {:ok, binary()} | error()
 end

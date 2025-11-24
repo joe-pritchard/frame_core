@@ -22,4 +22,19 @@ defmodule FrameCore.HttpClient.Real do
         {:error, reason}
     end
   end
+
+  @impl true
+  @spec get_file(String.t(), list()) :: {:ok, binary()} | {:error, term()}
+  def get_file(url, headers) do
+    case Req.get(url, headers: headers) do
+      {:ok, %Req.Response{status: status, body: body}} when status in 200..299 ->
+        {:ok, body}
+
+      {:ok, %Req.Response{status: status}} ->
+        {:error, {:http_error, status}}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
 end
