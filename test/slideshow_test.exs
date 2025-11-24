@@ -86,7 +86,6 @@ defmodule FrameCore.SlideshowTest do
       {:ok, _pid} = start_supervised({Slideshow, config})
 
       assert {:error, :no_images} = Slideshow.get_random_image()
-      assert {:error, :no_images} = Slideshow.get_next_image()
     end
 
     test "refresh fetches images from backend and saves last_fetch" do
@@ -210,33 +209,6 @@ defmodule FrameCore.SlideshowTest do
       assert {:ok, image} = Slideshow.get_random_image()
       assert is_binary(image)
       assert image in ["images/1.jpg", "images/2.jpg"]
-    end
-
-    test "get_next_image rotates through images" do
-      expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
-        {:error, :enoent}
-      end)
-
-      expect(FrameCore.FileSystemMock, :list_dir, fn "images" ->
-        {:ok, ["images/1.jpg", "images/2.jpg", "images/3.jpg"]}
-      end)
-
-      config = %Slideshow.Config{
-        file_system: FrameCore.FileSystemMock
-      }
-
-      {:ok, _pid} = start_supervised({Slideshow, config})
-
-      assert {:ok, first} = Slideshow.get_next_image()
-      assert {:ok, second} = Slideshow.get_next_image()
-      assert {:ok, third} = Slideshow.get_next_image()
-
-      assert first != second
-      assert second != third
-      assert first != third
-
-      assert {:ok, fourth} = Slideshow.get_next_image()
-      assert fourth == first
     end
 
     test "list_images returns all available images" do

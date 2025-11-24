@@ -65,14 +65,6 @@ defmodule FrameCore.Slideshow do
   end
 
   @doc """
-  Returns the next image in the slideshow sequence.
-  """
-  @spec get_next_image() :: {:ok, String.t()} | {:error, :no_images}
-  def get_next_image do
-    GenServer.call(__MODULE__, :get_next_image)
-  end
-
-  @doc """
   Returns list of all available image paths.
   """
   @spec list_images() :: [String.t()]
@@ -138,22 +130,6 @@ defmodule FrameCore.Slideshow do
         random_index = :rand.uniform(length(images)) - 1
         image = Enum.at(images, random_index)
         {:reply, {:ok, image}, state}
-    end
-  end
-
-  @impl true
-  @spec handle_call(:get_next_image, GenServer.from(), State.t()) ::
-          {:reply, {:ok, String.t()} | {:error, :no_images}, State.t()}
-  def handle_call(:get_next_image, _from, state) do
-    case state.images do
-      [] ->
-        {:reply, {:error, :no_images}, state}
-
-      [first | rest] ->
-        # Rotate images: move first to end
-        new_images = rest ++ [first]
-        new_state = %{state | images: new_images}
-        {:reply, {:ok, first}, new_state}
     end
   end
 
