@@ -1,7 +1,10 @@
 {
+    // Line endings - LF for Linux embedded target
+    "files.eol": "\n",
     // Elixir formatting
     "elixir.formatOnSave": true,
     "[elixir]": {
+        "files.eol": "\n",
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "JakeBecker.elixir-ls"
     },
