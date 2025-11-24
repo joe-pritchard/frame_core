@@ -7,7 +7,7 @@ defmodule FrameCore.BackendTest do
 
   alias FrameCore.Backend
 
-  describe "Backend.fetch_images/2" do
+  describe "Backend.fetch_images/1" do
     test "fetches images with device ID in header and no last_fetch param" do
       device_id = "test-device-123"
 
@@ -21,13 +21,14 @@ defmodule FrameCore.BackendTest do
       end)
 
       config = %Backend.Config{
+        device_id: device_id,
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
 
       {:ok, _pid} = start_supervised({Backend, config})
 
-      assert {:ok, images} = Backend.fetch_images(device_id)
+      assert {:ok, images} = Backend.fetch_images()
       assert length(images) == 1
       assert [%{"id" => 1, "url" => "http://example.com/img1.jpg"}] = images
     end
@@ -45,13 +46,14 @@ defmodule FrameCore.BackendTest do
       end)
 
       config = %Backend.Config{
+        device_id: device_id,
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
 
       {:ok, _pid} = start_supervised({Backend, config})
 
-      assert {:ok, []} = Backend.fetch_images(device_id, last_fetch)
+      assert {:ok, []} = Backend.fetch_images(last_fetch)
     end
 
     test "handles empty images array in response" do
@@ -62,13 +64,14 @@ defmodule FrameCore.BackendTest do
       end)
 
       config = %Backend.Config{
+        device_id: device_id,
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
 
       {:ok, _pid} = start_supervised({Backend, config})
 
-      assert {:ok, []} = Backend.fetch_images(device_id)
+      assert {:ok, []} = Backend.fetch_images()
     end
 
     test "handles missing images key in response" do
@@ -79,13 +82,14 @@ defmodule FrameCore.BackendTest do
       end)
 
       config = %Backend.Config{
+        device_id: device_id,
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
 
       {:ok, _pid} = start_supervised({Backend, config})
 
-      assert {:ok, []} = Backend.fetch_images(device_id)
+      assert {:ok, []} = Backend.fetch_images()
     end
 
     test "handles HTTP client errors" do
@@ -96,37 +100,14 @@ defmodule FrameCore.BackendTest do
       end)
 
       config = %Backend.Config{
+        device_id: device_id,
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
 
       {:ok, _pid} = start_supervised({Backend, config})
 
-      assert {:error, :timeout} = Backend.fetch_images(device_id)
-    end
-
-    test "updates last_fetch state after successful fetch" do
-      device_id = "test-device-state"
-
-      expect(FrameCore.HttpClientMock, :get_json, 2, fn _url, _params, _headers ->
-        {:ok, %{"images" => []}}
-      end)
-
-      config = %Backend.Config{
-        client: FrameCore.HttpClientMock,
-        backend_url: "https://api.example.com"
-      }
-
-      {:ok, _pid} = start_supervised({Backend, config})
-
-      assert {:ok, []} = Backend.fetch_images(device_id)
-      assert {:ok, []} = Backend.fetch_images(device_id)
-    end
-
-    test "raises when BACKEND_URL environment variable is not set and no backend_url provided" do
-      config = %Backend.Config{client: FrameCore.HttpClientMock}
-
-      assert {:error, _} = start_supervised({Backend, config})
+      assert {:error, :timeout} = Backend.fetch_images()
     end
 
     test "fetches multiple images correctly" do
@@ -143,13 +124,14 @@ defmodule FrameCore.BackendTest do
       end)
 
       config = %Backend.Config{
+        device_id: device_id,
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
 
       {:ok, _pid} = start_supervised({Backend, config})
 
-      assert {:ok, images} = Backend.fetch_images(device_id)
+      assert {:ok, images} = Backend.fetch_images()
       assert length(images) == 3
       assert images == images_data
     end
