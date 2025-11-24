@@ -3,6 +3,9 @@ defmodule FrameCore.FileSystem do
   Behavior for file system operations.
   """
 
-  @callback read(Path.t()) :: {:ok, binary()} | {:error, File.posix()}
-  @callback write!(Path.t(), iodata()) :: :ok
+  @type path :: Path.t()
+  @type posix_error :: File.posix()
+
+  @callback read(path()) :: {:ok, binary()} | {:error, posix_error()}
+  @callback write!(path(), iodata()) :: :ok
 end
