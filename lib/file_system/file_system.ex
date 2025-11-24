@@ -8,4 +8,5 @@ defmodule FrameCore.FileSystem do
 
   @callback read(path()) :: {:ok, binary()} | {:error, posix_error()}
   @callback write!(path(), iodata()) :: :ok
+  @callback list_dir(path()) :: {:ok, [String.t()]} | {:error, posix_error()}
 end

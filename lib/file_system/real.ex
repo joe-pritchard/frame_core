@@ -10,4 +10,17 @@ defmodule FrameCore.FileSystem.Real do
 
   @impl true
   def write!(path, content), do: File.write!(path, content)
+
+  @impl true
+  def list_dir(path) do
+    case File.ls(path) do
+      {:ok, files} ->
+        # Return full paths, not just filenames
+        full_paths = Enum.map(files, fn file -> Path.join(path, file) end)
+        {:ok, full_paths}
+
+      {:error, _} = error ->
+        error
+    end
+  end
 end
