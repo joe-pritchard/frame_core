@@ -102,6 +102,6 @@ defmodule FrameCore.Backend do
     ]
   end
 
-  defp parse_images_response(%{"images" => images}) when is_list(images), do: images
+  defp parse_images_response(%{"data" => images}) when is_list(images), do: images
   defp parse_images_response(_), do: []
 end

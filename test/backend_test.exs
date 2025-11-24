@@ -16,7 +16,7 @@ defmodule FrameCore.BackendTest do
         assert params == %{}
         assert {"X-Device-ID", ^device_id} = List.keyfind(headers, "X-Device-ID", 0)
 
-        {:ok, %{"images" => [%{"id" => 1, "url" => "http://example.com/img1.jpg"}]}}
+        {:ok, %{"data" => [%{"id" => 1, "url" => "http://example.com/img1.jpg"}]}}
       end)
 
       config = %Backend.Config{
@@ -41,7 +41,7 @@ defmodule FrameCore.BackendTest do
         assert params == %{"since" => "2025-11-24T12:00:00Z"}
         assert {"X-Device-ID", ^device_id} = List.keyfind(headers, "X-Device-ID", 0)
 
-        {:ok, %{"images" => []}}
+        {:ok, %{"data" => []}}
       end)
 
       config = %Backend.Config{
@@ -59,7 +59,7 @@ defmodule FrameCore.BackendTest do
       device_id = "test-device-789"
 
       expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
-        {:ok, %{"images" => []}}
+        {:ok, %{"data" => []}}
       end)
 
       config = %Backend.Config{
@@ -119,7 +119,7 @@ defmodule FrameCore.BackendTest do
       ]
 
       expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
-        {:ok, %{"images" => images_data}}
+        {:ok, %{"data" => images_data}}
       end)
 
       config = %Backend.Config{
