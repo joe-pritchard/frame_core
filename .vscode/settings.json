@@ -28,5 +28,11 @@
         "**/_build/**": true,
         "**/deps/**": true,
         "**/.elixir_ls/**": true
-    }
+    },
+    // Coverage Gutters configuration
+    "coverage-gutters.coverageFileNames": [
+        "frame_core.covertool.xml"
+    ],
+    "coverage-gutters.showLineCoverage": true,
+    "coverage-gutters.showRulerCoverage": true
 }

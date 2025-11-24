@@ -7,7 +7,8 @@ defmodule FrameCore.MixProject do
       version: "0.1.0",
       elixir: "~> 1.19",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      test_coverage: [tool: :covertool]
     ]
   end
 
@@ -26,6 +27,7 @@ defmodule FrameCore.MixProject do
       {:uuid, "~> 1.1"},
       {:req, "~> 0.5"},
       {:mox, "~> 1.0", only: :test},
+      {:covertool, "~> 2.0", only: :test},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
