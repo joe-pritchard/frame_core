@@ -21,10 +21,10 @@ defmodule FrameCore.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:google_api_storage, "~> 0.19.0"},
-      {:goth, "~> 1.2.0"},
       {:dotenv, "~> 3.0.0"},
-      {:jason, "~> 1.4"}
+      {:jason, "~> 1.4"},
+      {:uuid, "~> 1.1"},
+      {:mox, "~> 1.0", only: :test}
     ]
   end
 end

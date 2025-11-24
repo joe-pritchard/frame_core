@@ -1,23 +1,35 @@
 defmodule FrameCore.DeviceId do
   use GenServer
 
-  @path "device_id.txt"
+  defmodule Config do
+    @moduledoc """
+    Configuration for DeviceId GenServer.
+    """
 
-  def start_link(_) do
-    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+    @enforce_keys [:path]
+    defstruct [:path, file_system: FrameCore.FileSystem.Real]
+
+    @type t :: %__MODULE__{
+            path: String.t(),
+            file_system: module()
+          }
+  end
+
+  def start_link(%Config{} = config) do
+    GenServer.start_link(__MODULE__, config, name: __MODULE__)
   end
 
   def get, do: GenServer.call(__MODULE__, :get)
 
-  def init(_) do
+  def init(%Config{path: path, file_system: file_system}) do
     id =
-      case File.read(@path) do
+      case file_system.read(path) do
         {:ok, content} ->
           String.trim(content)
 
         {:error, _} ->
           new_id = UUID.uuid4()
-          File.write!(@path, new_id)
+          file_system.write!(path, new_id)
           new_id
       end
 
