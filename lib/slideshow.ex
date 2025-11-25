@@ -241,8 +241,17 @@ defmodule FrameCore.Slideshow do
 
   @spec get_image_path(map()) :: String.t()
   defp get_image_path(%{"id" => id, "url" => url}) do
-    # Extract file extension from URL
-    extension = Path.extname(url)
+    extension =
+      url
+      |> URI.parse()
+      |> Map.get(:path, "")
+      |> Path.extname()
+      |> case do
+        # default
+        "" -> ".jpg"
+        ext -> ext
+      end
+
     Path.join(@images_dir, "#{id}#{extension}")
   end
 

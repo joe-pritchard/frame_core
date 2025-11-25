@@ -5,8 +5,8 @@ defmodule FrameCore.SlideshowTest do
   setup :verify_on_exit!
   setup :set_mox_global
 
-  alias FrameCore.Slideshow
   alias FrameCore.Backend
+  alias FrameCore.Slideshow
 
   describe "Slideshow" do
     test "initializes with no last_fetch when file doesn't exist" do
@@ -417,6 +417,205 @@ defmodule FrameCore.SlideshowTest do
       assert "images/1.jpg" in images
       refute "images/2.jpg" in images
       assert "images/3.jpg" in images
+    end
+
+    test "handles URLs with query parameters correctly" do
+      expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
+        {:error, :enoent}
+      end)
+
+      expect(FrameCore.FileSystemMock, :list_dir, fn "images" ->
+        {:error, :enoent}
+      end)
+
+      expect(FrameCore.FileSystemMock, :write!, 2, fn path, _content ->
+        # Should extract .jpg from path, not include query params
+        assert path in ["last_fetch.txt", "images/100.jpg"]
+        refute String.contains?(path, "?")
+        refute String.contains?(path, "size=large")
+        :ok
+      end)
+
+      expect(FrameCore.FileSystemMock, :mkdir_p, fn "images" ->
+        :ok
+      end)
+
+      # Image URL has query parameters
+      images_data = [
+        %{
+          "id" => 100,
+          "url" => "http://example.com/photo.jpg?size=large&token=abc123",
+          "deleted_at" => nil
+        }
+      ]
+
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
+        {:ok, %{"data" => images_data}}
+      end)
+
+      expect(FrameCore.HttpClientMock, :get_file, fn url, _headers ->
+        assert url == "http://example.com/photo.jpg?size=large&token=abc123"
+        {:ok, <<>>}
+      end)
+
+      backend_config = %Backend.Config{
+        device_id: "test-device-123",
+        client: FrameCore.HttpClientMock,
+        backend_url: "https://api.example.com"
+      }
+
+      start_supervised({Backend, backend_config})
+
+      slideshow_config = %Slideshow.Config{
+        file_system: FrameCore.FileSystemMock
+      }
+
+      {:ok, _pid} = start_supervised({Slideshow, slideshow_config})
+
+      assert :ok = Slideshow.refresh()
+
+      images = Slideshow.list_images()
+      assert length(images) == 1
+      assert "images/100.jpg" in images
+    end
+
+    test "handles URLs without file extensions by defaulting to .jpg" do
+      expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
+        {:error, :enoent}
+      end)
+
+      expect(FrameCore.FileSystemMock, :list_dir, fn "images" ->
+        {:error, :enoent}
+      end)
+
+      expect(FrameCore.FileSystemMock, :write!, 2, fn path, _content ->
+        # Should default to .jpg when no extension found
+        assert path in ["last_fetch.txt", "images/200.jpg"]
+        :ok
+      end)
+
+      expect(FrameCore.FileSystemMock, :mkdir_p, fn "images" ->
+        :ok
+      end)
+
+      # Image URL has no file extension
+      images_data = [
+        %{
+          "id" => 200,
+          "url" => "http://example.com/api/image/get",
+          "deleted_at" => nil
+        }
+      ]
+
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
+        {:ok, %{"data" => images_data}}
+      end)
+
+      expect(FrameCore.HttpClientMock, :get_file, fn url, _headers ->
+        assert url == "http://example.com/api/image/get"
+        {:ok, <<>>}
+      end)
+
+      backend_config = %Backend.Config{
+        device_id: "test-device-123",
+        client: FrameCore.HttpClientMock,
+        backend_url: "https://api.example.com"
+      }
+
+      start_supervised({Backend, backend_config})
+
+      slideshow_config = %Slideshow.Config{
+        file_system: FrameCore.FileSystemMock
+      }
+
+      {:ok, _pid} = start_supervised({Slideshow, slideshow_config})
+
+      assert :ok = Slideshow.refresh()
+
+      images = Slideshow.list_images()
+      assert length(images) == 1
+      assert "images/200.jpg" in images
+    end
+
+    test "preserves correct extensions from URLs with query parameters" do
+      expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
+        {:error, :enoent}
+      end)
+
+      expect(FrameCore.FileSystemMock, :list_dir, fn "images" ->
+        {:error, :enoent}
+      end)
+
+      expect(FrameCore.FileSystemMock, :write!, 4, fn path, _content ->
+        # Should extract correct extension for each file type
+        assert path in [
+                 "last_fetch.txt",
+                 "images/301.png",
+                 "images/302.gif",
+                 "images/303.jpeg"
+               ]
+
+        :ok
+      end)
+
+      expect(FrameCore.FileSystemMock, :mkdir_p, 3, fn "images" ->
+        :ok
+      end)
+
+      # Different image types with query params
+      images_data = [
+        %{
+          "id" => 301,
+          "url" => "http://example.com/photo.png?w=800&h=600",
+          "deleted_at" => nil
+        },
+        %{
+          "id" => 302,
+          "url" => "http://example.com/animation.gif?autoplay=false",
+          "deleted_at" => nil
+        },
+        %{
+          "id" => 303,
+          "url" => "http://example.com/image.jpeg?quality=high",
+          "deleted_at" => nil
+        }
+      ]
+
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
+        {:ok, %{"data" => images_data}}
+      end)
+
+      expect(FrameCore.HttpClientMock, :get_file, 3, fn url, _headers ->
+        assert url in [
+                 "http://example.com/photo.png?w=800&h=600",
+                 "http://example.com/animation.gif?autoplay=false",
+                 "http://example.com/image.jpeg?quality=high"
+               ]
+
+        {:ok, <<>>}
+      end)
+
+      backend_config = %Backend.Config{
+        device_id: "test-device-123",
+        client: FrameCore.HttpClientMock,
+        backend_url: "https://api.example.com"
+      }
+
+      start_supervised({Backend, backend_config})
+
+      slideshow_config = %Slideshow.Config{
+        file_system: FrameCore.FileSystemMock
+      }
+
+      {:ok, _pid} = start_supervised({Slideshow, slideshow_config})
+
+      assert :ok = Slideshow.refresh()
+
+      images = Slideshow.list_images()
+      assert length(images) == 3
+      assert "images/301.png" in images
+      assert "images/302.gif" in images
+      assert "images/303.jpeg" in images
     end
   end
 end
