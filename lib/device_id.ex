@@ -4,6 +4,7 @@ defmodule FrameCore.DeviceId do
 
   Reads or generates a UUID and stores it in a file to persist across restarts.
   """
+  require Logger
 
   use GenServer
 
@@ -41,11 +42,18 @@ defmodule FrameCore.DeviceId do
     id =
       case file_system.read(@device_id_path) do
         {:ok, content} ->
+          Logger.debug("Loaded existing device ID: #{String.trim(content)}")
+
           String.trim(content)
 
         {:error, _} ->
+          Logger.debug("No existing device ID, generating...")
+
           new_id = UUID.uuid4()
           file_system.write!(@device_id_path, new_id)
+
+          Logger.debug("Generated new device ID: #{new_id}")
+
           new_id
       end
 

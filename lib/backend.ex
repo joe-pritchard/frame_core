@@ -78,12 +78,14 @@ defmodule FrameCore.Backend do
         ) ::
           {:reply, {:ok, list()} | {:error, term()}, State.t()}
   def handle_call({:fetch_images, last_fetch}, _from, %State{} = state) do
+    Logger.debug("Fetching images from backend with last_fetch: #{inspect(last_fetch)}")
     params = build_params(last_fetch)
     headers = build_headers(state.device_id)
     url = "#{state.backend_url}/images"
 
     case state.client.get_json(url, params, headers) do
       {:ok, response} ->
+        Logger.debug("Received response from backend: #{inspect(response)}")
         images = parse_images_response(response)
         {:reply, {:ok, images}, state}
 
@@ -93,9 +95,20 @@ defmodule FrameCore.Backend do
     end
   end
 
+  ## todo: make async using Task.supervisor?
+  @impl true
+  @spec handle_call(
+          {:download_file, String.t()},
+          GenServer.from(),
+          State.t()
+        ) ::
+          {:reply, {:ok, binary()} | {:error, term()}, State.t()}
   def handle_call({:download_file, url}, _from, %State{} = state) do
+    Logger.debug("Downloading file from URL: #{url}")
+
     case state.client.get_file(url, build_headers(state.device_id)) do
       {:ok, body} ->
+        Logger.debug("Successfully downloaded file with length: #{byte_size(body)}")
         {:reply, {:ok, body}, state}
 
       {:error, reason} = error ->

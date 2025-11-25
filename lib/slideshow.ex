@@ -110,7 +110,7 @@ defmodule FrameCore.Slideshow do
 
         new_state = %{new_state | last_fetch: now}
 
-        Logger.info("Refreshed images: #{length(new_state.images)} total")
+        Logger.info("Refreshed images, new length: #{length(new_state.images)}")
         {:reply, :ok, new_state}
 
       {:error, reason} = error ->
@@ -125,11 +125,15 @@ defmodule FrameCore.Slideshow do
   def handle_call(:get_random_image, _from, state) do
     case state.images do
       [] ->
+        Logger.debug("No images available for random selection")
         {:reply, {:error, :no_images}, state}
 
       images ->
-        random_index = :rand.uniform(length(images)) - 1
+        random_index = :rand.uniform(length(images) - 1)
+
+        Logger.debug("Selected random image index: #{random_index}")
         image = Enum.at(images, random_index)
+        Logger.debug("image selected: #{image}")
         {:reply, {:ok, image}, state}
     end
   end
@@ -148,11 +152,20 @@ defmodule FrameCore.Slideshow do
     case file_system.read(@last_fetch_path) do
       {:ok, content} ->
         case DateTime.from_iso8601(String.trim(content)) do
-          {:ok, datetime, _offset} -> datetime
-          {:error, _} -> nil
+          {:ok, datetime, _offset} ->
+            Logger.debug("Loaded last fetch time: #{content}")
+            datetime
+
+          {:error, reason} ->
+            Logger.debug(
+              "Unable to generate DateTime from last fetch content, returning nil: #{inspect(reason)}"
+            )
+
+            nil
         end
 
       {:error, _} ->
+        Logger.debug("last fetch does not exist, returning nil")
         nil
     end
   end
@@ -257,16 +270,22 @@ defmodule FrameCore.Slideshow do
 
   @spec download_image(map(), String.t(), module()) :: :ok | {:error, term()}
   defp download_image(%{"url" => url}, destination, file_system) do
-    with :ok <- file_system.mkdir_p(Path.dirname(destination)) do
-      case Backend.download_file(url) do
-        {:ok, data} ->
-          file_system.write!(destination, data)
-          Logger.info("Downloaded #{url} to #{destination}")
-          :ok
+    case file_system.mkdir_p(Path.dirname(destination)) do
+      :ok ->
+        case Backend.download_file(url) do
+          {:ok, data} ->
+            file_system.write!(destination, data)
+            Logger.info("Downloaded #{url} to #{destination}")
+            :ok
 
-        {:error, reason} ->
-          {:error, reason}
-      end
+          {:error, reason} ->
+            Logger.error("Failed to download #{url} to #{destination}: #{inspect(reason)}")
+            {:error, reason}
+        end
+
+      {:error, reason} ->
+        Logger.error("Failed to create directory for #{destination}: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 end

@@ -1,16 +1,6 @@
 defmodule FrameCore do
   @moduledoc """
-  Documentation for `FrameCore`.
-  """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> FrameCore.hello()
-      :world
-
+  Supervisor for `FrameCore` Will orchestrate the DeviceId, Backend, and Slideshow processes.
   """
   def hello do
     :world
