@@ -13,7 +13,7 @@ defmodule FrameCore.Backend do
     Configuration for Backend GenServer.
     """
 
-    @enforce_keys [:client, :backend_url]
+    @enforce_keys [:client]
     defstruct client: nil, backend_url: nil
 
     @type t :: %__MODULE__{
@@ -57,7 +57,7 @@ defmodule FrameCore.Backend do
   @spec init(Config.t()) :: {:ok, State.t()}
   def init(%Config{client: client, backend_url: backend_url}) do
     actual_client = client || @default_client
-    actual_url = backend_url || System.fetch_env!("BACKEND_URL")
+    actual_url = backend_url || Application.fetch_env!(:frame_core, :BACKEND_URL)
 
     state = %State{
       client: actual_client,
