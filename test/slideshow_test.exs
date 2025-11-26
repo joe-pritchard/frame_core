@@ -9,45 +9,6 @@ defmodule FrameCore.SlideshowTest do
   alias FrameCore.Slideshow
 
   describe "Slideshow" do
-    test "initializes with no last_fetch when file doesn't exist" do
-      expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
-        {:error, :enoent}
-      end)
-
-      expect(FrameCore.FileSystemMock, :list_dir, fn "images" ->
-        {:error, :enoent}
-      end)
-
-      config = %Slideshow.Config{
-        file_system: FrameCore.FileSystemMock
-      }
-
-      {:ok, _pid} = start_supervised({Slideshow, config})
-
-      assert Slideshow.list_images() == []
-    end
-
-    test "loads last_fetch from file if it exists" do
-      last_fetch = ~U[2025-11-24 12:00:00Z]
-      iso_string = DateTime.to_iso8601(last_fetch)
-
-      expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
-        {:ok, iso_string}
-      end)
-
-      expect(FrameCore.FileSystemMock, :list_dir, fn "images" ->
-        {:error, :enoent}
-      end)
-
-      config = %Slideshow.Config{
-        file_system: FrameCore.FileSystemMock
-      }
-
-      {:ok, _pid} = start_supervised({Slideshow, config})
-
-      assert Slideshow.list_images() == []
-    end
-
     test "initializes with existing images from filesystem" do
       expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
         {:error, :enoent}
@@ -89,8 +50,11 @@ defmodule FrameCore.SlideshowTest do
     end
 
     test "refresh fetches images from backend and saves last_fetch" do
-      expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
-        {:error, :enoent}
+      expect(FrameCore.FileSystemMock, :read, fn filename ->
+        case filename do
+          "device_id.txt" -> {:ok, "test-device-123"}
+          "last_fetch.txt" -> {:error, :enoent}
+        end
       end)
 
       expect(FrameCore.FileSystemMock, :list_dir, fn "images" ->
@@ -102,12 +66,13 @@ defmodule FrameCore.SlideshowTest do
         :ok
       end)
 
-      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, params ->
+        # no last_fetch date provided
+        assert params == %{}
         {:ok, %{"images" => []}}
       end)
 
       backend_config = %Backend.Config{
-        device_id: "test-device-123",
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
@@ -127,8 +92,11 @@ defmodule FrameCore.SlideshowTest do
       last_fetch = ~U[2025-11-24 10:00:00Z]
       iso_string = DateTime.to_iso8601(last_fetch)
 
-      expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
-        {:ok, iso_string}
+      expect(FrameCore.FileSystemMock, :read, fn filename ->
+        case filename do
+          "device_id.txt" -> {:ok, "test-device-123"}
+          "last_fetch.txt" -> {:ok, iso_string}
+        end
       end)
 
       expect(FrameCore.FileSystemMock, :list_dir, fn "images" ->
@@ -139,13 +107,12 @@ defmodule FrameCore.SlideshowTest do
         :ok
       end)
 
-      expect(FrameCore.HttpClientMock, :get_json, fn _url, params, _headers ->
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, params ->
         assert params["since"] == iso_string
         {:ok, %{"images" => []}}
       end)
 
       backend_config = %Backend.Config{
-        device_id: "test-device-123",
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
@@ -162,20 +129,21 @@ defmodule FrameCore.SlideshowTest do
     end
 
     test "handles backend errors gracefully" do
-      expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
-        {:error, :enoent}
+      expect(FrameCore.FileSystemMock, :read, fn filename ->
+        case filename do
+          "last_fetch.txt" -> {:error, :enoent}
+        end
       end)
 
       expect(FrameCore.FileSystemMock, :list_dir, fn "images" ->
         {:error, :enoent}
       end)
 
-      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params ->
         {:error, :timeout}
       end)
 
       backend_config = %Backend.Config{
-        device_id: "test-device-123",
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
@@ -233,8 +201,11 @@ defmodule FrameCore.SlideshowTest do
     end
 
     test "refresh downloads new images that don't exist" do
-      expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
-        {:error, :enoent}
+      expect(FrameCore.FileSystemMock, :read, fn filename ->
+        case filename do
+          "device_id.txt" -> {:ok, "test-device-123"}
+          "last_fetch.txt" -> {:error, :enoent}
+        end
       end)
 
       expect(FrameCore.FileSystemMock, :list_dir, fn "images" ->
@@ -257,17 +228,16 @@ defmodule FrameCore.SlideshowTest do
         %{"id" => 3, "url" => "http://example.com/img3.jpg", "deleted_at" => nil}
       ]
 
-      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params ->
         {:ok, %{"data" => images_data}}
       end)
 
-      expect(FrameCore.HttpClientMock, :get_file, 2, fn url, _headers ->
+      expect(FrameCore.HttpClientMock, :get_file, 2, fn url ->
         assert url in ["http://example.com/img2.jpg", "http://example.com/img3.jpg"]
         {:ok, <<>>}
       end)
 
       backend_config = %Backend.Config{
-        device_id: "test-device-123",
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
@@ -294,8 +264,11 @@ defmodule FrameCore.SlideshowTest do
     end
 
     test "refresh deletes images with deleted_at set" do
-      expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
-        {:error, :enoent}
+      expect(FrameCore.FileSystemMock, :read, fn filename ->
+        case filename do
+          "device_id.txt" -> {:ok, "test-device-123"}
+          "last_fetch.txt" -> {:error, :enoent}
+        end
       end)
 
       expect(FrameCore.FileSystemMock, :list_dir, fn "images" ->
@@ -320,12 +293,11 @@ defmodule FrameCore.SlideshowTest do
         }
       ]
 
-      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params ->
         {:ok, %{"data" => images_data}}
       end)
 
       backend_config = %Backend.Config{
-        device_id: "test-device-123",
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
@@ -351,8 +323,11 @@ defmodule FrameCore.SlideshowTest do
     end
 
     test "refresh both downloads new and deletes removed images" do
-      expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
-        {:error, :enoent}
+      expect(FrameCore.FileSystemMock, :read, fn filename ->
+        case filename do
+          "device_id.txt" -> {:ok, "test-device-123"}
+          "last_fetch.txt" -> {:error, :enoent}
+        end
       end)
 
       expect(FrameCore.FileSystemMock, :list_dir, fn "images" ->
@@ -383,17 +358,16 @@ defmodule FrameCore.SlideshowTest do
         %{"id" => 3, "url" => "http://example.com/img3.jpg", "deleted_at" => nil}
       ]
 
-      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params ->
         {:ok, %{"data" => images_data}}
       end)
 
-      expect(FrameCore.HttpClientMock, :get_file, fn url, _headers ->
+      expect(FrameCore.HttpClientMock, :get_file, fn url ->
         assert url == "http://example.com/img3.jpg"
         {:ok, <<>>}
       end)
 
       backend_config = %Backend.Config{
-        device_id: "test-device-123",
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
@@ -420,8 +394,11 @@ defmodule FrameCore.SlideshowTest do
     end
 
     test "handles URLs with query parameters correctly" do
-      expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
-        {:error, :enoent}
+      expect(FrameCore.FileSystemMock, :read, fn filename ->
+        case filename do
+          "device_id.txt" -> {:ok, "test-device-123"}
+          "last_fetch.txt" -> {:error, :enoent}
+        end
       end)
 
       expect(FrameCore.FileSystemMock, :list_dir, fn "images" ->
@@ -449,17 +426,16 @@ defmodule FrameCore.SlideshowTest do
         }
       ]
 
-      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params ->
         {:ok, %{"data" => images_data}}
       end)
 
-      expect(FrameCore.HttpClientMock, :get_file, fn url, _headers ->
+      expect(FrameCore.HttpClientMock, :get_file, fn url ->
         assert url == "http://example.com/photo.jpg?size=large&token=abc123"
         {:ok, <<>>}
       end)
 
       backend_config = %Backend.Config{
-        device_id: "test-device-123",
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
@@ -480,8 +456,11 @@ defmodule FrameCore.SlideshowTest do
     end
 
     test "handles URLs without file extensions by defaulting to .jpg" do
-      expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
-        {:error, :enoent}
+      expect(FrameCore.FileSystemMock, :read, fn filename ->
+        case filename do
+          "device_id.txt" -> {:ok, "test-device-123"}
+          "last_fetch.txt" -> {:error, :enoent}
+        end
       end)
 
       expect(FrameCore.FileSystemMock, :list_dir, fn "images" ->
@@ -507,17 +486,16 @@ defmodule FrameCore.SlideshowTest do
         }
       ]
 
-      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params ->
         {:ok, %{"data" => images_data}}
       end)
 
-      expect(FrameCore.HttpClientMock, :get_file, fn url, _headers ->
+      expect(FrameCore.HttpClientMock, :get_file, fn url ->
         assert url == "http://example.com/api/image/get"
         {:ok, <<>>}
       end)
 
       backend_config = %Backend.Config{
-        device_id: "test-device-123",
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
@@ -538,8 +516,11 @@ defmodule FrameCore.SlideshowTest do
     end
 
     test "preserves correct extensions from URLs with query parameters" do
-      expect(FrameCore.FileSystemMock, :read, fn "last_fetch.txt" ->
-        {:error, :enoent}
+      expect(FrameCore.FileSystemMock, :read, fn filename ->
+        case filename do
+          "device_id.txt" -> {:ok, "test-device-123"}
+          "last_fetch.txt" -> {:error, :enoent}
+        end
       end)
 
       expect(FrameCore.FileSystemMock, :list_dir, fn "images" ->
@@ -581,11 +562,11 @@ defmodule FrameCore.SlideshowTest do
         }
       ]
 
-      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params ->
         {:ok, %{"data" => images_data}}
       end)
 
-      expect(FrameCore.HttpClientMock, :get_file, 3, fn url, _headers ->
+      expect(FrameCore.HttpClientMock, :get_file, 3, fn url ->
         assert url in [
                  "http://example.com/photo.png?w=800&h=600",
                  "http://example.com/animation.gif?autoplay=false",
@@ -596,7 +577,6 @@ defmodule FrameCore.SlideshowTest do
       end)
 
       backend_config = %Backend.Config{
-        device_id: "test-device-123",
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }

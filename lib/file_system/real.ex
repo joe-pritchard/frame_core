@@ -57,7 +57,7 @@ defmodule FrameCore.FileSystem.Real do
         :ok
 
       {:error, reason} ->
-        Logger.error("Failed to create directory path #{path}: #{inspect(reason)}")
+        Logger.warning("Failed to create directory path #{path}: #{inspect(reason)}")
         {:error, reason}
     end
   end

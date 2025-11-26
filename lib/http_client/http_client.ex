@@ -5,10 +5,9 @@ defmodule FrameCore.HttpClient do
 
   @type url :: String.t()
   @type params :: map()
-  @type headers :: [{String.t(), String.t()}]
   @type json_response :: term()
   @type error :: {:error, term()}
 
-  @callback get_json(url(), params(), headers()) :: {:ok, json_response()} | error()
-  @callback get_file(url(), headers()) :: {:ok, binary()} | error()
+  @callback get_json(url(), params()) :: {:ok, json_response()} | error()
+  @callback get_file(url()) :: {:ok, binary()} | error()
 end

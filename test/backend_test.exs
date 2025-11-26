@@ -9,18 +9,14 @@ defmodule FrameCore.BackendTest do
 
   describe "Backend.fetch_images/1" do
     test "fetches images with device ID in header and no last_fetch param" do
-      device_id = "test-device-123"
-
-      expect(FrameCore.HttpClientMock, :get_json, fn url, params, headers ->
+      expect(FrameCore.HttpClientMock, :get_json, fn url, params ->
         assert url == "https://api.example.com/images"
         assert params == %{}
-        assert {"X-Device-ID", ^device_id} = List.keyfind(headers, "X-Device-ID", 0)
 
         {:ok, %{"data" => [%{"id" => 1, "url" => "http://example.com/img1.jpg"}]}}
       end)
 
       config = %Backend.Config{
-        device_id: device_id,
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
@@ -33,19 +29,16 @@ defmodule FrameCore.BackendTest do
     end
 
     test "includes since parameter when last_fetch is provided" do
-      device_id = "test-device-456"
       last_fetch = ~U[2025-11-24 12:00:00Z]
 
-      expect(FrameCore.HttpClientMock, :get_json, fn url, params, headers ->
+      expect(FrameCore.HttpClientMock, :get_json, fn url, params ->
         assert url == "https://api.example.com/images"
         assert params == %{"since" => "2025-11-24T12:00:00Z"}
-        assert {"X-Device-ID", ^device_id} = List.keyfind(headers, "X-Device-ID", 0)
 
         {:ok, %{"data" => []}}
       end)
 
       config = %Backend.Config{
-        device_id: device_id,
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
@@ -56,14 +49,11 @@ defmodule FrameCore.BackendTest do
     end
 
     test "handles empty images array in response" do
-      device_id = "test-device-789"
-
-      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params ->
         {:ok, %{"data" => []}}
       end)
 
       config = %Backend.Config{
-        device_id: device_id,
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
@@ -74,14 +64,11 @@ defmodule FrameCore.BackendTest do
     end
 
     test "handles missing images key in response" do
-      device_id = "test-device-999"
-
-      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params ->
         {:ok, %{"status" => "ok"}}
       end)
 
       config = %Backend.Config{
-        device_id: device_id,
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
@@ -92,14 +79,11 @@ defmodule FrameCore.BackendTest do
     end
 
     test "handles HTTP client errors" do
-      device_id = "test-device-error"
-
-      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params ->
         {:error, :timeout}
       end)
 
       config = %Backend.Config{
-        device_id: device_id,
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }
@@ -110,20 +94,17 @@ defmodule FrameCore.BackendTest do
     end
 
     test "fetches multiple images correctly" do
-      device_id = "test-device-multi"
-
       images_data = [
         %{"id" => 1, "url" => "http://example.com/img1.jpg", "title" => "Image 1"},
         %{"id" => 2, "url" => "http://example.com/img2.jpg", "title" => "Image 2"},
         %{"id" => 3, "url" => "http://example.com/img3.jpg", "title" => "Image 3"}
       ]
 
-      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params, _headers ->
+      expect(FrameCore.HttpClientMock, :get_json, fn _url, _params ->
         {:ok, %{"data" => images_data}}
       end)
 
       config = %Backend.Config{
-        device_id: device_id,
         client: FrameCore.HttpClientMock,
         backend_url: "https://api.example.com"
       }

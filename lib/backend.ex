@@ -13,11 +13,10 @@ defmodule FrameCore.Backend do
     Configuration for Backend GenServer.
     """
 
-    @enforce_keys [:device_id]
-    defstruct [:device_id, client: nil, backend_url: nil]
+    @enforce_keys [:client, :backend_url]
+    defstruct client: nil, backend_url: nil
 
     @type t :: %__MODULE__{
-            device_id: String.t(),
             client: module(),
             backend_url: String.t() | nil
           }
@@ -26,11 +25,10 @@ defmodule FrameCore.Backend do
   defmodule State do
     @moduledoc false
     @type t :: %__MODULE__{
-            device_id: String.t(),
             client: module(),
             backend_url: String.t()
           }
-    defstruct device_id: nil, client: nil, backend_url: nil
+    defstruct client: nil, backend_url: nil
   end
 
   ## Client API
@@ -57,12 +55,11 @@ defmodule FrameCore.Backend do
 
   @impl true
   @spec init(Config.t()) :: {:ok, State.t()}
-  def init(%Config{device_id: device_id, client: client, backend_url: backend_url}) do
+  def init(%Config{client: client, backend_url: backend_url}) do
     actual_client = client || @default_client
     actual_url = backend_url || System.fetch_env!("BACKEND_URL")
 
     state = %State{
-      device_id: device_id,
       client: actual_client,
       backend_url: actual_url
     }
@@ -79,18 +76,18 @@ defmodule FrameCore.Backend do
           {:reply, {:ok, list()} | {:error, term()}, State.t()}
   def handle_call({:fetch_images, last_fetch}, _from, %State{} = state) do
     Logger.debug("Fetching images from backend with last_fetch: #{inspect(last_fetch)}")
+
     params = build_params(last_fetch)
-    headers = build_headers(state.device_id)
     url = "#{state.backend_url}/images"
 
-    case state.client.get_json(url, params, headers) do
+    case state.client.get_json(url, params) do
       {:ok, response} ->
         Logger.debug("Received response from backend: #{inspect(response)}")
         images = parse_images_response(response)
         {:reply, {:ok, images}, state}
 
       {:error, reason} = error ->
-        Logger.error("Failed to fetch images: #{inspect(reason)}")
+        Logger.warning("Failed to fetch images: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
@@ -106,13 +103,13 @@ defmodule FrameCore.Backend do
   def handle_call({:download_file, url}, _from, %State{} = state) do
     Logger.debug("Downloading file from URL: #{url}")
 
-    case state.client.get_file(url, build_headers(state.device_id)) do
+    case state.client.get_file(url) do
       {:ok, body} ->
         Logger.debug("Successfully downloaded file with length: #{byte_size(body)}")
         {:reply, {:ok, body}, state}
 
       {:error, reason} = error ->
-        Logger.error("Failed to download file from #{url}: #{inspect(reason)}")
+        Logger.warning("Failed to download file from #{url}: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
@@ -123,12 +120,6 @@ defmodule FrameCore.Backend do
 
   defp build_params(%DateTime{} = last_fetch) do
     %{"since" => DateTime.to_iso8601(last_fetch)}
-  end
-
-  defp build_headers(device_id) do
-    [
-      {"X-Device-ID", device_id}
-    ]
   end
 
   defp parse_images_response(%{"data" => images}) when is_list(images), do: images

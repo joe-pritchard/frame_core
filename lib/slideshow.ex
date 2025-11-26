@@ -114,7 +114,7 @@ defmodule FrameCore.Slideshow do
         {:reply, :ok, new_state}
 
       {:error, reason} = error ->
-        Logger.error("Failed to refresh images: #{inspect(reason)}")
+        Logger.warning("Failed to refresh images: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
@@ -224,7 +224,7 @@ defmodule FrameCore.Slideshow do
           %{state | images: [image_path | state.images]}
 
         {:error, reason} ->
-          Logger.error("Failed to download image: #{inspect(reason)}")
+          Logger.warning("Failed to download image: #{inspect(reason)}")
           state
       end
     end
@@ -244,7 +244,7 @@ defmodule FrameCore.Slideshow do
           %{state | images: List.delete(state.images, image_path)}
 
         {:error, reason} ->
-          Logger.error("Failed to delete image #{image_path}: #{inspect(reason)}")
+          Logger.warning("Failed to delete image #{image_path}: #{inspect(reason)}")
           state
       end
     else
@@ -279,12 +279,12 @@ defmodule FrameCore.Slideshow do
             :ok
 
           {:error, reason} ->
-            Logger.error("Failed to download #{url} to #{destination}: #{inspect(reason)}")
+            Logger.warning("Failed to download #{url} to #{destination}: #{inspect(reason)}")
             {:error, reason}
         end
 
       {:error, reason} ->
-        Logger.error("Failed to create directory for #{destination}: #{inspect(reason)}")
+        Logger.warning("Failed to create directory for #{destination}: #{inspect(reason)}")
         {:error, reason}
     end
   end
