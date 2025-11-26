@@ -12,6 +12,7 @@ defmodule FrameCore do
     children = [
       {DeviceId, %DeviceId.Config{file_system: FileSystem.Real}},
       {Backend, %Backend.Config{client: HttpClient.Real}},
+      {Enrolment, []},
       {Slideshow, %Slideshow.Config{file_system: FileSystem.Real}}
     ]
 
