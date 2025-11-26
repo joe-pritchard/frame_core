@@ -15,8 +15,9 @@ defmodule FrameCore.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
+      env: [backend_url: "https://example.com"],
       extra_applications: [:logger]
-    ]
+    ] ++ mod_spec()
   end
 
   # Run "mix help deps" to learn about dependencies.
@@ -30,5 +31,9 @@ defmodule FrameCore.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
+  end
+
+  defp mod_spec do
+    if Mix.env() == :test, do: [], else: [mod: {FrameCore, []}]
   end
 end

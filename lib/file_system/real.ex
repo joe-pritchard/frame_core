@@ -33,7 +33,7 @@ defmodule FrameCore.FileSystem.Real do
 
   @impl true
   def rm(path) do
-    Logger.debug("removing #{File.rm(path)}")
+    Logger.debug("removing #{path}")
 
     case File.rm(path) do
       :ok ->

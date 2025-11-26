@@ -1,8 +1,20 @@
 defmodule FrameCore do
   @moduledoc """
-  Supervisor for `FrameCore` Will orchestrate the DeviceId, Backend, and Slideshow processes.
+  Top-level supervisor that orchestrates DeviceId, Backend, and Slideshow processes.
   """
-  def hello do
-    :world
+
+  use Application
+
+  alias FrameCore.{Backend, DeviceId, FileSystem, HttpClient, Slideshow}
+
+  @impl true
+  def start(_type, _args) do
+    children = [
+      {DeviceId, %DeviceId.Config{file_system: FileSystem.Real}},
+      {Backend, %Backend.Config{client: HttpClient.Real}},
+      {Slideshow, %Slideshow.Config{file_system: FileSystem.Real}}
+    ]
+
+    Supervisor.start_link(children, strategy: :rest_for_one)
   end
 end

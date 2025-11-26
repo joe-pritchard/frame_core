@@ -37,30 +37,56 @@ defmodule FrameCore.DeviceId do
   ## Server Callbacks
 
   @impl GenServer
-  @spec init(Config.t()) :: {:ok, state()}
+  @spec init(Config.t()) :: {:ok, state()} | {:stop, term()}
   def init(%Config{file_system: file_system}) do
-    id =
-      case file_system.read(@device_id_path) do
-        {:ok, content} ->
-          Logger.debug("Loaded existing device ID: #{String.trim(content)}")
+    case load_or_generate_id(file_system) do
+      {:ok, id} ->
+        {:ok, id}
 
-          String.trim(content)
-
-        {:error, _} ->
-          Logger.debug("No existing device ID, generating...")
-
-          new_id = UUID.uuid4()
-          file_system.write!(@device_id_path, new_id)
-
-          Logger.debug("Generated new device ID: #{new_id}")
-
-          new_id
-      end
-
-    {:ok, id}
+      {:error, reason} ->
+        {:stop, reason}
+    end
   end
 
   @impl GenServer
   @spec handle_call(:get, GenServer.from(), state()) :: {:reply, String.t(), state()}
   def handle_call(:get, _from, id), do: {:reply, id, id}
+
+  defp load_or_generate_id(file_system) do
+    case file_system.read(@device_id_path) do
+      {:ok, content} ->
+        id = String.trim(content)
+        Logger.debug("Loaded existing device ID: #{id}")
+        {:ok, id}
+
+      {:error, :enoent} ->
+        Logger.debug("No existing device ID, generating...")
+        generate_and_persist_id(file_system)
+
+      {:error, reason} ->
+        Logger.warning("Failed to read device ID file: #{inspect(reason)}")
+        {:error, {:device_id_read_failed, reason}}
+    end
+  end
+
+  defp generate_and_persist_id(file_system) do
+    new_id = UUID.uuid4()
+
+    case persist_id(file_system, new_id) do
+      :ok ->
+        Logger.debug("Generated new device ID: #{new_id}")
+        {:ok, new_id}
+
+      {:error, reason} ->
+        Logger.warning("Failed to persist device ID: #{inspect(reason)}")
+        {:error, {:device_id_write_failed, reason}}
+    end
+  end
+
+  defp persist_id(file_system, id) do
+    file_system.write!(@device_id_path, id)
+    :ok
+  rescue
+    error -> {:error, error}
+  end
 end

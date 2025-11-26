@@ -95,9 +95,26 @@ defmodule FrameCore.DeviceIdTest do
         file_system: FrameCore.FileSystemMock
       }
 
-      # The GenServer will crash during init, so start_supervised returns error
       result = start_supervised({DeviceId, config})
-      assert {:error, _} = result
+
+      assert {:error,
+              {{:device_id_write_failed,
+                %File.Error{reason: :eacces, action: "write", path: ^path}}, _child}} = result
+    end
+
+    test "fails fast when device id file cannot be read" do
+      path = "device_id.txt"
+
+      expect(FrameCore.FileSystemMock, :read, fn ^path ->
+        {:error, :eacces}
+      end)
+
+      config = %DeviceId.Config{
+        file_system: FrameCore.FileSystemMock
+      }
+
+      assert {:error, {{:device_id_read_failed, :eacces}, _child}} =
+               start_supervised({DeviceId, config})
     end
   end
 end
