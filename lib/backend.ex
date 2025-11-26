@@ -57,7 +57,7 @@ defmodule FrameCore.Backend do
   @spec init(Config.t()) :: {:ok, State.t()}
   def init(%Config{client: client, backend_url: backend_url}) do
     actual_client = client || @default_client
-    actual_url = backend_url || Application.fetch_env!(:frame_core, :BACKEND_URL)
+    actual_url = backend_url || Application.fetch_env!(:frame_core, :backend_url)
 
     state = %State{
       client: actual_client,
