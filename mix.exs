@@ -15,7 +15,7 @@ defmodule FrameCore.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      env: [BACKEND_URL: "https://example.com"],
+      env: [backend_url: "https://example.com"],
       extra_applications: [:logger]
     ] ++ mod_spec()
   end
