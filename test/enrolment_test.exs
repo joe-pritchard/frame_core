@@ -52,7 +52,7 @@ defmodule FrameCore.EnrolmentTest do
     end
 
     test "does not change state when the server returns a server error" do
-      # intially true
+      # initially true
       expect(FrameCore.HttpClientMock, :get_json, fn url, params ->
         assert url == "https://api.example.com/device-enrolment"
         assert params == %{}
