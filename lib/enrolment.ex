@@ -1,6 +1,6 @@
-defmodule Frame.Enrolment do
+defmodule FrameCore.Enrolment do
   @moduledoc """
-  GenServer for managing enrolment operations.
+  GenServer for saving the device-enrolment state, just checks for a successful response code from the backend.
   """
 
   use GenServer
@@ -17,7 +17,7 @@ defmodule Frame.Enrolment do
 
   # Client API
 
-  def start_link() do
+  def start_link(_args) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
@@ -28,6 +28,11 @@ defmodule Frame.Enrolment do
   # Server Callbacks
 
   @impl GenServer
+  def init(_) do
+    {:ok, %State{}}
+  end
+
+  @impl GenServer
   def handle_call(:check_enrolment, _from, state) do
     case FrameCore.Backend.authenticate_device() do
       {:ok, _response} ->
@@ -36,14 +41,14 @@ defmodule Frame.Enrolment do
         {:reply, true, %State{enrolled: true}}
 
       {:error, {:http_error, status}} when status in 400..499 ->
-        Logger.error(
+        Logger.warning(
           "Device enrolment failed with client error status #{status}. Setting enrolled to false."
         )
 
         {:reply, false, %State{enrolled: false}}
 
       {:error, {:http_error, status}} when status in 500..599 ->
-        Logger.error("Failed to check enrolment with server error status #{status}.")
+        Logger.warning("Failed to check enrolment with server error status #{status}.")
 
         {:reply, state.enrolled, state}
 

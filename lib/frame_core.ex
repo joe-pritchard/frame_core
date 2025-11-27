@@ -5,7 +5,7 @@ defmodule FrameCore do
 
   use Application
 
-  alias FrameCore.{Backend, DeviceId, FileSystem, HttpClient, Slideshow}
+  alias FrameCore.{Backend, DeviceId, Enrolment, FileSystem, HttpClient, Slideshow}
 
   @impl true
   def start(_type, _args) do

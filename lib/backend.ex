@@ -79,7 +79,13 @@ defmodule FrameCore.Backend do
   @spec handle_call(:authenticate_device, GenServer.from(), State.t()) ::
           {:reply, {:ok, term()} | {:error, term()}, State.t()}
   def handle_call(:authenticate_device, _from, %State{} = state) do
-    state.client.get_json("#{state.backend_url}/device-enrolment")
+    case state.client.get_json("#{state.backend_url}/device-enrolment", %{}) do
+      {:ok, response} ->
+        {:reply, {:ok, response}, state}
+
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
+    end
   end
 
   @impl true
