@@ -38,14 +38,14 @@ defmodule FrameCore.Enrolment do
       {:ok, _response} ->
         Logger.info("Device successfully enrolled.")
 
-        {:reply, true, %State{enrolled: true}}
+        {:reply, true, %{state | enrolled: true}}
 
       {:error, {:http_error, status}} when status in 400..499 ->
         Logger.warning(
           "Device enrolment failed with client error status #{status}. Setting enrolled to false."
         )
 
-        {:reply, false, %State{enrolled: false}}
+        {:reply, false, %{state | enrolled: false}}
 
       {:error, {:http_error, status}} when status in 500..599 ->
         Logger.warning("Failed to check enrolment with server error status #{status}.")
