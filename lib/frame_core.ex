@@ -5,13 +5,14 @@ defmodule FrameCore do
 
   use Application
 
-  alias FrameCore.{Backend, DeviceId, FileSystem, HttpClient, Slideshow}
+  alias FrameCore.{Backend, DeviceId, Enrolment, FileSystem, HttpClient, Slideshow}
 
   @impl true
   def start(_type, _args) do
     children = [
       {DeviceId, %DeviceId.Config{file_system: FileSystem.Real}},
       {Backend, %Backend.Config{client: HttpClient.Real}},
+      {Enrolment, []},
       {Slideshow, %Slideshow.Config{file_system: FileSystem.Real}}
     ]
 

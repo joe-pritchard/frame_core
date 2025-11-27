@@ -39,6 +39,14 @@ defmodule FrameCore.Backend do
   end
 
   @doc """
+  Authenticates the device with the backend server. A 200 response indicates successful enrolment.
+  """
+  @spec authenticate_device() :: {:ok, term()} | {:error, term()}
+  def authenticate_device do
+    GenServer.call(__MODULE__, :authenticate_device)
+  end
+
+  @doc """
   Fetches images from the backend, optionally filtering by last update time.
   """
   @spec fetch_images(DateTime.t() | nil) :: {:ok, list()} | {:error, term()}
@@ -65,6 +73,19 @@ defmodule FrameCore.Backend do
     }
 
     {:ok, state}
+  end
+
+  @impl true
+  @spec handle_call(:authenticate_device, GenServer.from(), State.t()) ::
+          {:reply, {:ok, term()} | {:error, term()}, State.t()}
+  def handle_call(:authenticate_device, _from, %State{} = state) do
+    case state.client.get_json("#{state.backend_url}/device-enrolment", %{}) do
+      {:ok, response} ->
+        {:reply, {:ok, response}, state}
+
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
+    end
   end
 
   @impl true
