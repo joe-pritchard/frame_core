@@ -21,7 +21,7 @@ defmodule FrameCore.Enrolment do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  def check_enrolment() do
+  def check_enrolment do
     GenServer.call(__MODULE__, :check_enrolment)
   end
 
